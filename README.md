@@ -1,12 +1,14 @@
-# GISelle — Safety-Aware Navigation & Pathfinding Platform
+# <u>GISelle</u> — Safety-Aware Navigation & Pathfinding Platform
 
 **C++ · EZGL · A* · Multi-Destination Dijkstra · Simulated Annealing · Multi-threaded**
 
-GISelle (*elle*, French for “her”) is a safety-first GIS navigation platform developed for the University of Toronto **ECE297: Software Design & Communication** course. It extends traditional shortest-path routing with **safety-aware heuristics**, **emergency rerouting**, and **context-aware UI modes** for women and vulnerable users. The project received an **A** for algorithmic performance, implementation quality, and usability validation across all milestones.
+GISelle (*elle*, French for "her") is a safety-first GIS navigation platform developed for the University of Toronto **ECE297: Software Design & Communication** course. It extends traditional shortest-path routing with **safety-aware heuristics**, **emergency rerouting**, and **context-aware UI modes** for women and vulnerable users. The project received an **A** for algorithmic performance, implementation quality, and usability validation across all milestones.
 
 ---
 
-## Demo
+## <u>Demo</u>
+
+**[▶ Watch full demo (Google Drive)](https://drive.google.com/file/d/1ZqqvSZlfG-oxGxM2vKJ8t9Unu_PgmEsV/view?usp=sharing)**
 
 <p align="center">
   <a href="https://drive.google.com/file/d/1ZqqvSZlfG-oxGxM2vKJ8t9Unu_PgmEsV/view?usp=sharing">
@@ -16,7 +18,7 @@ GISelle (*elle*, French for “her”) is a safety-first GIS navigation platform
 
 ---
 
-## Motivation
+## <u>Motivation</u>
 
 Standard routing engines optimize for **distance** or **travel time** and do not model safety. GISelle adds:
 
@@ -26,58 +28,58 @@ Standard routing engines optimize for **distance** or **travel time** and do not
 
 ---
 
-## Architecture & Milestones
+## <u>Architecture & Milestones</u>
 
 The system was built in four milestones: data pipeline and rendering, search and filtering, pathfinding, and delivery optimization.
 
 ---
 
-### Milestone 1: Data Integration & Rendering
+### <u>Milestone 1: Data Integration & Rendering</u>
 
 **Objective:** Build a GIS backend and renderer for interactive map display.
 
-- **Input:** Binary (`.bin`) map dumps.
-- **Output:** Structured graph (streets, intersections, POIs) with O(1) lookup for rendering and pathfinding.
-- **Implementation:** Custom parser → adjacency structures (intersection ↔ street segments) → EZGL-based 2D rendering with pan/zoom.
+- **Input:** Binary (`.bin`) map dumps (streets, intersections, POIs, metadata); single-pass parse with fixed/variable-length fields.
+- **Output:** In-memory directed graph — O(1) lookup by ID; adjacency list (intersection → outgoing segments; segment → from/to, length, one-way, name ID); spatial index for viewport culling.
+- **Implementation:** Custom parser → adjacency structures → EZGL 2D rendering (draw order: streets, highlights, POI icons); pan/zoom via canvas transforms.
 
 ---
 
-### Milestone 2: Search & Context-Aware UI
+### <u>Milestone 2: Search & Context-Aware UI</u>
 
 **Objective:** Real-time street search and safety-oriented visual modes.
 
 #### Data structures & algorithms
 
-- **Trie** — prefix-based autocomplete for street names; supports partial and full matches and drives interactive map highlighting of search results.
-- **Icon filtering** — toggleable layers for police stations, hospitals, and transit hubs with distinct day/night glyphs and tooltips.
+- **Trie:** Prefix tree over street names; O(k) per keystroke; nodes store segment/intersection IDs for map highlight; full and partial match.
+- **Icon filtering:** Per-type layers (police, hospitals, transit); day/night glyphs; visibility and z-order by UI mode; hover hit-test via POI bounds.
 
 #### UI modes
 
-| Mode | Purpose |
-|------|--------|
-| **Default** | Full map; all POIs; baseline contrast. |
-| **Dark** | Reduced glare; same features. |
-| **Night shift** | Emphasizes police, hospitals, transit; darker palette for low-light use. |
+| Mode        | Purpose                                                                 |
+|-------------|-------------------------------------------------------------------------|
+| **Default** | Full map; all POIs; baseline contrast.                                 |
+| **Dark**    | Reduced glare; same features.                                          |
+| **Night shift** | Police, hospitals, transit emphasized; darker palette; high-contrast POIs. |
 
-**Before (baseline UI):**
+**Before (baseline UI):** Low contrast, no safety-specific filters.
 
 | Old UI |
 |--------|
 | ![Old UI](https://github.com/user-attachments/assets/af1c83a5-c154-4dca-b105-04f8dac1bcf7) |
 
-**Default map (post–Milestone 2):**
+**Default map (post–Milestone 2):** Streets, intersections, POIs via EZGL; search and drawing enabled.
 
 ![Default map](https://github.com/user-attachments/assets/b0281ca4-620a-4d75-a548-657350177283)
 
-**Night shift mode:**
+**Night shift mode:** Police, hospitals, transit highlighted; darker palette.
 
 ![Night shift](https://github.com/user-attachments/assets/48414b11-9707-4e36-aaac-da56bbc60577)
 
-**Dark mode:**
+**Dark mode:** Same features; reduced glare.
 
 ![Dark mode](https://github.com/user-attachments/assets/0f6687e5-fde6-469c-bf66-03c62842bade)
 
-**Icon filtering (demo):**
+**Icon filtering (demo):** [Full demo link](https://drive.google.com/file/d/1ZqqvSZlfG-oxGxM2vKJ8t9Unu_PgmEsV/view?usp=sharing)
 
 <p align="center">
   <a href="https://drive.google.com/file/d/1ZqqvSZlfG-oxGxM2vKJ8t9Unu_PgmEsV/view?usp=sharing">
@@ -91,23 +93,19 @@ The system was built in four milestones: data pipeline and rendering, search and
 
 ![Icon filter active](https://github.com/user-attachments/assets/1fd3456f-6e00-4236-95f3-7d07f70f8177)
 
-**Autocomplete (Trie-backed search):**
+**Autocomplete (Trie-backed search):** Prefix search drives map highlighting.
 
 ![Autocomplete](https://github.com/user-attachments/assets/06da75a2-27ab-4a32-83ea-b96a4fb211db)
 
 ---
 
-### Milestone 3: A* Pathfinding
+### <u>Milestone 3: A* Pathfinding</u>
 
 **Objective:** Time- and safety-aware routing between two intersections.
 
-**Cost model:**
+**Cost model:** Edge cost = travel time (length/speed); main-road weighting; turn penalties at intersections (per in/out segment pair). Heuristic **h(n)** admissible (e.g. Euclidean or L1 to goal / max speed) for optimality.
 
-- **Edge cost:** Travel time (not just length); main roads favored for safety/visibility.
-- **Turn penalties:** Extra cost at intersections (red lights, complex junctions).
-- **Heuristic:** Admissible estimate to goal for A* optimality.
-
-**Implementation:** Priority queue over `f(n) = g(n) + h(n)`; minimal node expansion while preserving optimality.
+**Implementation:** Min-heap open list keyed by **f(n)=g(n)+h(n)**; closed set (node IDs); path reconstruction via parent pointers; same adjacency list as M1.
 
 **Shortest safe path (A→B):**
 
@@ -119,21 +117,21 @@ The system was built in four milestones: data pipeline and rendering, search and
 
 ---
 
-### Milestone 4: Traveling Courier Problem
+### <u>Milestone 4: Traveling Courier Problem</u>
 
-**Objective:** Multi-pickup, multi-dropoff routes with depot and time limits, using metaheuristics.
+**Objective:** Multi-pickup, multi-dropoff routes with depot and time limits via metaheuristics.
 
-- **Precomputation:** **Multi-destination Dijkstra** to build a travel-time matrix between all relevant nodes.
-- **Optimization:** **Multi-start + 2-opt Simulated Annealing** to improve route quality under a 50 s runtime cap.
-- **Parallelism:** **`std::thread`** to run multiple SA runs concurrently and keep the best solution.
+- **Precomputation:** Multi-destination Dijkstra (or repeated from depot) → travel-time matrix **D[i][j]**; O(n²) storage, O(1) lookup in SA.
+- **Optimization:** Multi-start + 2-opt Simulated Annealing; Metropolis acceptance; cooling schedule and iteration count tuned for ~50 s total.
+- **Parallelism:** **std::thread** — N independent SA runs; join and take best solution; reduces variance within time cap.
 
 ---
 
-## Safety Features (Post–Milestone)
+## <u>Safety Features (Post–Milestone)</u>
 
-- **Find nearest police** — one action reroutes the current path to the closest police station (with demo link below).
-- **Regional helplines** — toggle shows crisis/support numbers for the current region (with demo link below).
-- **Usability:** SUS surveys and timed tasks (e.g. “find safety button &lt; 2 s”) to validate clarity and responsiveness.
+- **Find nearest police:** A* or Dijkstra to all police nodes; pick min-cost; reroute and redraw.
+- **Regional helplines:** Toggle shows crisis/support numbers for current region (config or embedded data).
+- **Usability:** SUS (10 participants); timed tasks (e.g. find safety button &lt; 2 s).
 
 **Find nearest police (demo):**
 
@@ -153,28 +151,25 @@ The system was built in four milestones: data pipeline and rendering, search and
 
 ---
 
-## Evaluation
+## <u>Evaluation</u>
 
 | Metric | Result |
 |--------|--------|
 | **Usability (SUS)** | 10 participants; high scores for confidence and ease of use. |
 | **Responsiveness** | Majority located safety actions in &lt; 2 s. |
-| **Courier (2-opt SA)** | ~10–15 s improvement in route time vs baseline. |
+| **Courier (2-opt SA)** | ~10–15 s improvement vs baseline. |
 
 ---
 
-## Future Work
+## <u>Future Work</u>
 
-- **Street-light–aware costs** — integrate lighting data into edge weights for night routes.
-- **Ride-hail API (e.g. Uber)** — optional women/preferred-rider flow from within the map UI.
-- **Crowdsourced safety** — user-reported incidents or unsafe zones with moderation.
-
----
-
-> *Safety shouldn’t be an afterthought — GISelle centers it in every route and UI decision.*
+- **Street-light–aware costs** — lighting data in edge weights for night routes.
+- **Ride-hail API** — women/preferred-rider flow from map UI.
+- **Crowdsourced safety** — user-reported incidents with moderation.
 
 ---
 
-## Team
+> *Safety shouldn't be an afterthought — GISelle centers it in every route and UI decision.*
 
-![Team](https://github.com/user-attachments/assets/1a87ed0e-7e69-4092-959c-0e9b3d8d6b8d)
+---
+
